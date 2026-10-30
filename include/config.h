@@ -2,7 +2,8 @@
 #pragma once
 
 // Raw 1-bit frame published by the server (server/build_frame.py)
-#define IMAGE_URL "http://192.168.0.109:8000/frame.bin" // Mac's LAN IP while testing
+#define IMAGE_URL "https://omeraluf.github.io/eink-frame-ai-display/frame.bin" // GitHub Pages
+// For local testing: "http://<mac-ip>:8000/frame.bin" with python3 -m http.server 8000 --directory out
 
 #define FRAME_WIDTH  800
 #define FRAME_HEIGHT 480

@@ -2,7 +2,7 @@
 
 PlatformIO firmware for a **TRMNL 7.5" (OG) DIY kit**. On boot, the board joins WiFi, downloads a ready-made 1-bit 800×480 frame from a server and shows it. If anything fails, the screen keeps its previous picture.
 
-The goal: a server builds a daily AI artwork with the date, weather and a calendar event drawn into the scene, and the board fetches it once a day. For now the server runs on a Mac: `server/build_frame.py` builds the frame and a local HTTP server serves it.
+The goal: a server builds a daily AI artwork with the date, weather and a calendar event drawn into the scene, and the board fetches it once a day. The server runs on GitHub Actions every morning and publishes the frame to GitHub Pages; the board downloads it at 10:00 Israel time. No computer needs to be on.
 
 ## Hardware
 
@@ -48,7 +48,7 @@ Raw bytes, no header: 800×480 pixels, 1 bit per pixel, MSB first, row by row, b
    #define WIFI_SSID     "your-2.4GHz-network"
    #define WIFI_PASSWORD "your-password"
    ```
-3. **Set the server address** in `include/config.h` (`IMAGE_URL`) to your Mac's LAN IP (`ipconfig getifaddr en0`).
+3. **Server address** is `IMAGE_URL` in `include/config.h` (GitHub Pages). For local testing, point it at `http://<mac-ip>:8000/frame.bin` instead.
 4. **Build and flash** (once, or after firmware changes):
    ```sh
    pio run -t upload
@@ -64,6 +64,13 @@ Raw bytes, no header: 800×480 pixels, 1 bit per pixel, MSB first, row by row, b
 6. **Press reset** (or any button) on the board. Watch the logs with `pio device monitor`.
 
    The board deep-sleeps between refreshes, which switches off USB. To flash new firmware, press reset first: it then stays awake for 60 s (`FLASH_WINDOW_MS`). Refresh time and timezone are in `include/config.h`.
+
+## Running on GitHub
+
+- **Daily:** `.github/workflows/build-frame.yml` runs at 05:00 UTC, builds the frame and deploys `out/` to `https://omeraluf.github.io/eink-frame-ai-display/`.
+- **Manually:** Actions tab → *Build daily frame* → *Run workflow*. Pushing changes under `server/` or `photos/` also triggers a run.
+- **Secrets** (Settings → Secrets and variables → Actions): `CF_ACCOUNT_ID`, `CF_API_TOKEN`, `GOOGLE_ICAL_URL`.
+- **Adding photos:** drop originals in `images/photos/`, run `.venv/bin/python tools/sync_photos.py`, commit `photos/`.
 
 ## Restoring the factory firmware
 
@@ -84,4 +91,4 @@ esptool.py --chip esp32s3 --port /dev/cu.usbmodem1401 write_flash 0x0 backup/trm
 - [x] Step 6: calendar (most important event or week view, Hebrew supported)
 - [x] Step 7: photo mode (your photos redrawn as pencil sketches, random mix)
 - [x] Step 8: last frame saved to flash, ⚠ and 🔋 icons, status screen on button 2
-- [ ] Step 9: server on GitHub Actions + Pages
+- [x] Step 9: server on GitHub Actions + Pages (daily 05:00 UTC; secrets CF_ACCOUNT_ID, CF_API_TOKEN, GOOGLE_ICAL_URL)
