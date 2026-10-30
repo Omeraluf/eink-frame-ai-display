@@ -10,39 +10,47 @@ latitude = 32.0823
 longitude = 34.8106
 
 [art]
-model = "flux"
-retries = 6                # free tier allows 1 image per 45 s, so retries wait that long
-watermark_crop = 40        # extra pixels requested and cut off the bottom (Pollinations logo)
+providers = ["cloudflare", "pollinations"]  # tried in order
+trim = 0.04                # fraction cut off every edge (models add borders and signatures)
 style = "rotate"           # one of `styles` below, or "rotate" for a different one each day
 styles = [
-  "Black and white woodcut print, bold carved lines",
-  "Black and white linocut print, strong shapes",
+  "Black and white woodcut illustration, bold carved lines",
+  "Black and white linocut illustration, strong simple shapes",
   "Black ink pen illustration with fine cross-hatching",
   "Japanese sumi-e ink wash painting, minimal brush strokes",
-  "Victorian copperplate engraving, fine line work",
+  "Victorian engraving illustration, fine line work",
   "Black and white comic book line art, clean inks",
   "Minimalist single-line black ink drawing on white paper",
-  "Art nouveau poster in black and white, flowing ornamental lines",
+  "Art nouveau illustration in black and white, flowing ornamental lines",
   "Detailed graphite pencil sketch",
-  "Black paper-cut silhouette art on white background",
+  "Black paper-cut silhouette art on white",
   "Stippling ink illustration made of tiny dots",
-  "Ukiyo-e woodblock print in black and white",
+  "Ukiyo-e woodblock illustration in black and white",
 ]
 scenes = [
   "a quiet street café with a cat on a chair",
   "a lighthouse on a rocky coast",
   "a small mountain village with winding paths",
   "a city rooftop garden overlooking towers",
-  "an old bookshop window on a narrow street",
+  "an old bookshop on a narrow street",
   "a fisherman's boat at a wooden pier",
   "a hilltop olive grove with an old stone house",
   "a busy fruit market stall",
   "a bicycle leaning against a garden fence",
   "a forest cabin by a lake",
 ]
-# The blank object the date and weather are written on
-carrier = "In the lower third of the picture, a large blank white sign with nothing written on it, facing the viewer straight on"
-requirements = "Pure black and white, high contrast, no text, no letters, no words, no border, no frame, no signature"
+# Leave room for the date and weather: the text goes into this empty area
+carrier = "tall vertical composition, the upper third is a large calm empty area of plain white sky"
+requirements = "full-bleed edge to edge, pure black and white, high contrast"
+
+[art.cloudflare]
+model = "@cf/black-forest-labs/flux-1-schnell"  # free daily allowance on Workers AI
+steps = 8                  # 1-8, more is better quality
+retries = 3
+
+[art.pollinations]
+retries = 6                # free tier allows 1 image per 45 s, so retries wait that long
+watermark_crop = 40        # extra pixels requested and cut off the bottom (Pollinations logo)
 
 # Text: date and weather. With placement = "auto" the server looks for a blank
 # bright area (the sign) and writes there; otherwise, or if none is found, it uses
@@ -54,7 +62,8 @@ halo = 4
 line_gap = 10
 
 [text.auto]
-search_top = 0.4           # only look below this fraction of the height
+search_top = 0.0           # search band, as fractions of the height
+search_bottom = 0.5
 min_brightness = 200       # 0-255: the area must be mostly white...
 max_variation = 30         # ...and calm (low standard deviation)
 padding = 16

@@ -25,19 +25,24 @@ def text_lines(cfg: dict, day: dt.date, forecast: Forecast | None) -> list[tuple
 
 
 def find_blank_area(gray: Image.Image, box: tuple[int, int], cfg: dict) -> tuple[int, int] | None:
-    """Center of the calmest bright `box`-sized region in the search band (e.g. a blank sign)."""
+    """Where to center a `box`-sized text block: in the middle of the blank bright area
+    (e.g. empty sky) inside the search band, or None if there is none."""
     bw, bh = box
     top = int(gray.height * cfg["search_top"])
+    bottom = int(gray.height * cfg["search_bottom"])
     step = 8
-    best = None
-    for y in range(top, gray.height - bh, step):
+    fits = []  # centers of every window that is bright and calm enough
+    for y in range(top, max(top, bottom - bh) + 1, step):
         for x in range(0, gray.width - bw, step):
             stat = ImageStat.Stat(gray.crop((x, y, x + bw, y + bh)))
-            mean, std = stat.mean[0], stat.stddev[0]
-            if mean >= cfg["min_brightness"] and std <= cfg["max_variation"]:
-                if best is None or std < best[0]:
-                    best = (std, x + bw // 2, y + bh // 2)
-    return best and (best[1], best[2])
+            if stat.mean[0] >= cfg["min_brightness"] and stat.stddev[0] <= cfg["max_variation"]:
+                fits.append((x + bw // 2, y + bh // 2))
+    if not fits:
+        return None
+    # The fitting window nearest the middle of the blank area
+    cx = sum(x for x, _ in fits) / len(fits)
+    cy = sum(y for _, y in fits) / len(fits)
+    return min(fits, key=lambda p: (p[0] - cx) ** 2 + (p[1] - cy) ** 2)
 
 
 def compose(gray: Image.Image, cfg: dict, day: dt.date, forecast: Forecast | None) -> Image.Image:

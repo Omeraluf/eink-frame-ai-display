@@ -10,3 +10,4 @@ images/*.jpg
 build.log
 out/
 __pycache__/
+server/secrets.toml
