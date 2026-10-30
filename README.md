@@ -23,7 +23,7 @@ The goal: a server builds a daily AI artwork with the date, weather and a calend
 | `server/frame.py` | Panel format helpers: fit, dither, encode |
 | `server/calendar_events.py` | Upcoming events from a Google Calendar secret iCal link: the "most important" one, or the week ahead |
 | `server/weather.py` | Daily forecast from Open-Meteo (free, no key). If it fails, the frame is built without weather |
-| `server/fonts/` | Fonts used on the frame: Permanent Marker (Apache 2.0), Amatic SC with Hebrew (OFL) |
+| `server/fonts/` | Fonts used on the frame: Special Elite for date and weather (Apache 2.0), Amatic SC with Hebrew for the calendar (OFL), Permanent Marker (unused) |
 | `server/secrets.toml` | Cloudflare and Google Calendar credentials. **Gitignored**; on GitHub Actions they come from env vars |
 | `out/` | Generated output, served to the board. Gitignored |
 | `images/` | Source photos. Gitignored |

@@ -84,13 +84,13 @@ y = 0.97
 
 [text.weather]
 format = "{high:.0f}° / {low:.0f}°  {description}"
-font = "server/fonts/PermanentMarker-Regular.ttf"
-size = 32
+font = "server/fonts/SpecialElite-Regular.ttf"
+size = 22
 
 [text.date]
 format = "%d/%m"           # DD/MM
-font = "server/fonts/PermanentMarker-Regular.ttf"
-size = 64
+font = "server/fonts/SpecialElite-Regular.ttf"
+size = 57
 
 [text.calendar]
 font = "server/fonts/AmaticSC-Bold.ttf"  # has Hebrew letters
