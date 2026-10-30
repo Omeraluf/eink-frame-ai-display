@@ -1,0 +1,19 @@
+# Server settings for building the daily frame
+
+timezone = "Asia/Jerusalem"
+orientation = "portrait"   # "portrait" (frame stood upright) or "landscape"
+output_dir = "out"         # frame.bin + preview.png land here, relative to the repo root
+
+[background]
+# Placeholder until the AI art step: a local photo (gitignored), or blank if missing
+path = "images/20261016_124051.jpg"
+
+[date]
+format = "%d/%m"           # DD/MM
+font = "server/fonts/PermanentMarker-Regular.ttf"
+size = 64
+# Text anchor as a fraction of the canvas: (0, 0) top-left, (1, 1) bottom-right
+x = 0.92
+y = 0.95
+anchor = "rs"              # Pillow anchor: right edge, baseline
+halo = 4                   # white outline width so the text reads on any background
