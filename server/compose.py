@@ -86,7 +86,10 @@ def compose(gray: Image.Image, cfg: dict, lines: list[Line]) -> Image.Image:
     max_width = gray.width * cfg["max_width"] - 2 * cfg["auto"]["padding"]
     fonts, texts = [], []  # one entry per drawn row
     for line in lines:
-        font = ImageFont.truetype(str(ROOT / line.font), line.size)
+        # BASIC layout everywhere: Pillow builds with libraqm (e.g. on Linux) would reorder
+        # right-to-left text a second time on top of visual()
+        font = ImageFont.truetype(str(ROOT / line.font), line.size,
+                                  layout_engine=ImageFont.Layout.BASIC)
         for row in wrap(line.text, font, max_width, line.max_rows):
             fonts.append(font)
             texts.append(visual(row))
