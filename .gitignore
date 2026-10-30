@@ -7,6 +7,5 @@ include/secrets.h
 backup/*.bin
 .venv
 images/*.jpg
-images/preview.png
-include/photo.h
 build.log
+out/

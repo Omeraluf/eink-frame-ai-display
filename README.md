@@ -1,10 +1,12 @@
-# TRMNL e-ink photo frame
+# TRMNL e-ink AI frame
 
-Minimal PlatformIO firmware that turns a **TRMNL 7.5" (OG) DIY kit** into a static photo frame: on boot it draws one dithered black-and-white photo and leaves it on screen.
+PlatformIO firmware for a **TRMNL 7.5" (OG) DIY kit**. On boot, the board joins WiFi, downloads a ready-made 1-bit 800×480 frame from a server and shows it. If anything fails, the screen keeps its previous picture.
+
+The goal: a server builds a daily AI artwork with the date, weather and a calendar event drawn into the scene, and the board fetches it once a day. For now the "server" is `tools/convert.py` plus a local HTTP server on a Mac.
 
 ## Hardware
 
-- **MCU:** Seeed XIAO ESP32-S3 (8 MB PSRAM, 16 MB flash)
+- **MCU:** Seeed XIAO ESP32-S3 (8 MB PSRAM, 16 MB flash, 2.4 GHz WiFi only)
 - **Display:** 7.5" monochrome e-paper, 800×480, UC8179 controller
 - **Driver board:** XIAO ePaper Display Board EE04
 
@@ -13,11 +15,17 @@ Minimal PlatformIO firmware that turns a **TRMNL 7.5" (OG) DIY kit** into a stat
 | Path | Purpose |
 |---|---|
 | `platformio.ini` | Build config: `espressif32@6.12.0`, Arduino framework, Seeed_GFX (pinned commit), panel selected with `BOARD_SCREEN_COMBO=502` and `USE_XIAO_EPAPER_DISPLAY_BOARD_EE04` |
-| `src/main.cpp` | Firmware: clears the screen, draws `photo`, refreshes the panel once. `loop()` is empty |
-| `tools/convert.py` | Converts a photo into the 1-bit bitmap header |
-| `include/photo.h` | Generated bitmap (800×480, 1 bit per pixel, bit set = black). Do not edit by hand |
-| `images/` | Source photos and `preview.png`, which shows what the screen will display |
-| `backup/` | Full 16 MB dump of the factory TRMNL firmware, plus its sha256 and the read log |
+| `src/main.cpp` | Firmware: WiFi → download frame → display |
+| `include/config.h` | Board settings: image URL, timeouts |
+| `include/secrets.h` | WiFi name and password. **Gitignored**; create it from the template below |
+| `tools/convert.py` | Turns a photo into `out/frame.bin` (what the board downloads) and `out/preview.png` |
+| `out/` | Generated output, served to the board. Gitignored |
+| `images/` | Source photos. Gitignored |
+| `backup/` | sha256 and read log of the factory TRMNL firmware dump. The 16 MB `.bin` itself is gitignored |
+
+## Frame format
+
+Raw bytes, no header: 800×480 pixels, 1 bit per pixel, MSB first, row by row, bit set = black. Exactly 48,000 bytes. The board rejects any other size.
 
 ## Usage
 
@@ -26,28 +34,40 @@ Minimal PlatformIO firmware that turns a **TRMNL 7.5" (OG) DIY kit** into a stat
    python3 -m venv .venv
    .venv/bin/pip install pillow
    ```
-2. **Convert a photo:**
-   ```sh
-   .venv/bin/python tools/convert.py images/my_photo.jpg            # portrait (default)
-   .venv/bin/python tools/convert.py images/my_photo.jpg --landscape
+2. **WiFi credentials** (once): create `include/secrets.h`:
+   ```c
+   #pragma once
+   #define WIFI_SSID     "your-2.4GHz-network"
+   #define WIFI_PASSWORD "your-password"
    ```
-   The script applies the EXIF rotation, converts to grayscale, crops to fit, auto-contrasts and dithers to 1-bit (Floyd-Steinberg). Portrait photos are cropped to 480×800 and rotated onto the landscape panel, with the top of the photo at the panel's right edge, so the frame stands upright. Check `images/preview.png` before flashing.
-3. **Build and flash:**
+3. **Set the server address** in `include/config.h` (`IMAGE_URL`) to your Mac's LAN IP (`ipconfig getifaddr en0`).
+4. **Build and flash** (once, or after firmware changes):
    ```sh
    pio run -t upload
    ```
-   The upload and monitor port is set to `/dev/cu.usbmodem1401` in `platformio.ini`. Change it if your board shows up on a different port.
+   The upload and monitor port is `/dev/cu.usbmodem1401` in `platformio.ini`. Change it if your board shows up on a different port.
+5. **Make a frame and serve it:**
+   ```sh
+   .venv/bin/python tools/convert.py images/my_photo.jpg            # portrait (default)
+   .venv/bin/python tools/convert.py images/my_photo.jpg --landscape
+   python3 -m http.server 8000 --directory out
+   ```
+   Portrait photos are cropped to 480×800 and rotated onto the landscape panel, so the frame stands upright. Check `out/preview.png` to see what the screen will show.
+6. **Press reset** on the board. Watch the logs with `pio device monitor`.
 
 ## Restoring the factory firmware
 
-`backup/trmnl_factory_16MB.bin` is a complete image of the flash as shipped. To restore it:
+`backup/trmnl_factory_16MB.bin` (local only) is a complete image of the flash as shipped. To restore it:
 
 ```sh
 (cd backup && shasum -a 256 -c trmnl_factory_16MB.sha256)
 esptool.py --chip esp32s3 --port /dev/cu.usbmodem1401 write_flash 0x0 backup/trmnl_factory_16MB.bin
 ```
 
-## Limitations
+## Status
 
-- Shows one image compiled into the firmware. No WiFi, no TRMNL server and no deep sleep.
-- Changing the photo means re-running `convert.py` and re-flashing.
+- [x] Step 1: fetch a frame over WiFi and display it
+- [ ] Step 2: daily cycle (wake at 10:00 via deep sleep, button refresh)
+- [ ] Steps 3–6: server with date, weather, AI art, calendar
+- [ ] Step 7: failure and battery icons, status screen
+- [ ] Step 8: server on GitHub Actions + Pages
