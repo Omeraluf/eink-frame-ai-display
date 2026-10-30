@@ -42,7 +42,7 @@ scenes = [
   "a forest cabin by a lake",
 ]
 # Leave room for the date and weather: the text goes into this empty area
-carrier = "tall vertical composition, the upper third is a large calm empty area of plain white sky"
+carrier = "tall vertical composition with plenty of open space in the upper part of the sky"
 requirements = "full-bleed edge to edge, pure black and white, high contrast"
 
 [art.cloudflare]
@@ -75,7 +75,7 @@ max_width = 0.92          # fraction of the canvas width a line may use; longer 
 search_top = 0.0           # search band, as fractions of the height
 search_bottom = 0.6
 min_brightness = 200       # 0-255: the area must be mostly white...
-max_variation = 30         # ...and calm (low standard deviation)
+max_variation = 45         # ...and calm (low standard deviation); the halo covers a few stray lines
 padding = 16
 
 [text.fallback]

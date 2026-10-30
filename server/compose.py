@@ -104,11 +104,11 @@ def compose(gray: Image.Image, cfg: dict, lines: list[Line]) -> Image.Image:
     img = gray.convert("1")  # Floyd-Steinberg dithering
     draw = ImageDraw.Draw(img)
     if center:
-        x, y, anchor, halo = center[0], center[1] - block_h / 2, "ms", {}
+        x, y, anchor = center[0], center[1] - block_h / 2, "ms"
     else:
         fb = cfg["fallback"]
         x, y, anchor = img.width * fb["x"], img.height * fb["y"] - block_h, "rs"
-        halo = {"stroke_width": cfg["halo"], "stroke_fill": 1}
+    halo = {"stroke_width": cfg["halo"], "stroke_fill": 1}  # invisible on white, readable on lines
     for font, text, b in zip(fonts, texts, boxes):
         y += -b[1]  # ascent above the baseline
         draw.text((x, y), text, font=font, fill=0, anchor=anchor, **halo)

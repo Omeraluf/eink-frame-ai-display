@@ -30,19 +30,19 @@ def weather_phrase(f: Forecast | None) -> str:
         return ""
     c = f.code
     if c in (0, 1):
-        sky = "under a bright clear sunny sky"
+        sky = "on a bright sunny day, a radiant sun drawn in the sky"
     elif c == 2:
-        sky = "with a few scattered clouds in the sky"
+        sky = "partly cloudy, a few distinct clearly outlined clouds with bold dark edges"
     elif c == 3:
-        sky = "under a heavy overcast sky"
+        sky = "under a heavy overcast sky full of bold dark clouds"
     elif c in (45, 48):
         sky = "in thick fog"
     elif 71 <= c <= 77 or c in (85, 86):
         sky = "in gently falling snow"
     elif c >= 95:
-        sky = "during a dramatic thunderstorm with lightning"
+        sky = "during a dramatic thunderstorm with lightning bolts and dark clouds"
     else:
-        sky = "in the rain, with wet ground and puddles"
+        sky = "in the rain, clearly visible rain streaks, wet ground and puddles"
     if f.high >= 30:
         sky += ", on a hot day"
     elif f.high <= 12:
