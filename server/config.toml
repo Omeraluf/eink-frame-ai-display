@@ -13,6 +13,8 @@ longitude = 34.8106
 providers = ["cloudflare", "pollinations"]  # tried in order
 trim = 0.04                # fraction cut off every edge (models add borders and signatures)
 style = "rotate"           # one of `styles` below, or "rotate" for a different one each day
+favorite = "Detailed graphite pencil sketch"  # when rotating, shown every `favorite_every` days
+favorite_every = 2
 styles = [
   "Black and white woodcut illustration, bold carved lines",
   "Black and white linocut illustration, strong simple shapes",

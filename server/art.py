@@ -61,6 +61,20 @@ def pick(options: list[str], day: dt.date) -> str:
     return options[day.toordinal() % len(options)]
 
 
+def pick_style(cfg: dict, day: dt.date) -> str:
+    """The fixed style, or when rotating: the favorite every few days, the others in between."""
+    if cfg["style"] != "rotate":
+        return cfg["style"]
+    n, fav = cfg.get("favorite_every", 0), cfg.get("favorite")
+    if not fav or n < 2:
+        return pick(cfg["styles"], day)
+    d = day.toordinal()
+    if d % n == 0:
+        return fav
+    others = [s for s in cfg["styles"] if s != fav]
+    return others[(d - d // n - 1) % len(others)]  # count only the non-favorite days
+
+
 def cloudflare_credentials() -> tuple[str, str] | None:
     """From env vars (GitHub Actions) or server/secrets.toml (local)."""
     account, token = os.environ.get("CF_ACCOUNT_ID"), os.environ.get("CF_API_TOKEN")

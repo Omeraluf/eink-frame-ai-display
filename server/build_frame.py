@@ -29,7 +29,7 @@ def load_config() -> dict:
 def get_art(cfg: dict, day: dt.date, forecast, size, out: Path, style: str | None) -> Image.Image:
     """Today's artwork; falls back to the last saved art, then to a blank canvas."""
     a = cfg["art"]
-    style = style or (art.pick(a["styles"], day) if a["style"] == "rotate" else a["style"])
+    style = style or art.pick_style(a, day)
     prompt = art.build_prompt(a, style, art.pick(a["scenes"], day), forecast, day)
     print(f"Art prompt: {prompt}")
     img = art.generate(a, prompt, size, seed=day.toordinal())
