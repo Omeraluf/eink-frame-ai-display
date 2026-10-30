@@ -15,8 +15,8 @@ The goal: a server builds a daily AI artwork with the date, weather and a calend
 | Path | Purpose |
 |---|---|
 | `platformio.ini` | Build config: `espressif32@6.12.0`, Arduino framework, Seeed_GFX (pinned commit), panel selected with `BOARD_SCREEN_COMBO=502` and `USE_XIAO_EPAPER_DISPLAY_BOARD_EE04` |
-| `src/main.cpp` | Firmware: WiFi → time sync → download frame → display → deep sleep until the next refresh |
-| `include/config.h` | Board settings: image URL, refresh time, timezone, button pins, timeouts |
+| `src/main.cpp` | Firmware: WiFi → time sync → download frame → save to flash → display → deep sleep. On failure, redraws the saved frame with a ⚠; low battery adds a 🔋 icon; button 2 shows a status screen |
+| `include/config.h` | Board settings: image URL, refresh time, timezone, button pins, battery thresholds, timeouts |
 | `include/secrets.h` | WiFi name and password. **Gitignored**; create it from the template below |
 | `server/build_frame.py` | Builds today's frame: background + date + weather → `out/frame.bin` (what the board downloads) and `out/preview.png` |
 | `server/config.toml` | Server settings: timezone, orientation, background, weather location, text style and position |
@@ -80,6 +80,6 @@ esptool.py --chip esp32s3 --port /dev/cu.usbmodem1401 write_flash 0x0 backup/trm
 - [x] Step 4: weather (Open-Meteo, Ramat Gan)
 - [x] Step 5: AI art (Cloudflare Flux-schnell, 12 styles, pencil every other day)
 - [x] Step 6: calendar (most important event or week view, Hebrew supported)
-- [ ] Step 7: photo mode
-- [ ] Step 8: failure and battery icons, status screen
+- [x] Step 7: photo mode (your photos redrawn as pencil sketches, random mix)
+- [x] Step 8: last frame saved to flash, ⚠ and 🔋 icons, status screen on button 2
 - [ ] Step 9: server on GitHub Actions + Pages

@@ -1,7 +1,7 @@
 // Board settings — safe to commit (WiFi credentials live in secrets.h)
 #pragma once
 
-// Raw 1-bit frame published by the server (tools/convert.py for now)
+// Raw 1-bit frame published by the server (server/build_frame.py)
 #define IMAGE_URL "http://192.168.0.109:8000/frame.bin" // Mac's LAN IP while testing
 
 #define FRAME_WIDTH  800
@@ -22,8 +22,21 @@
 
 // Buttons on the EE04 board, active-low
 #define BUTTON_1_PIN 2 // refresh now
-#define BUTTON_2_PIN 3 // reserved: status screen (step 7)
-#define BUTTON_3_PIN 5 // reserved
+#define BUTTON_2_PIN 3 // status screen, then back to the picture
+#define BUTTON_3_PIN 5 // refresh now (spare)
+#define STATUS_SCREEN_MS 30000
+
+// The frame is composed in portrait; Sprite rotation 1 draws overlays the same way up
+#define PORTRAIT_ROTATION 1
+
+// Battery on the EE04 board: ADC on GPIO1 behind a 1:2 divider, measurement enabled by GPIO6 HIGH
+#define BATTERY_ADC_PIN     1
+#define BATTERY_ENABLE_PIN  6
+#define BATTERY_DIVIDER     2.0
+#define BATTERY_LOW_MV      3500 // show the battery icon below this
+#define BATTERY_ABSENT_MV   2500 // readings below this mean no battery is connected
+#define BATTERY_EMPTY_MV    3300 // 0% and 100% for the rough percentage on the status screen
+#define BATTERY_FULL_MV     4200
 
 #define WIFI_TIMEOUT_MS 20000
 #define HTTP_TIMEOUT_MS 15000
