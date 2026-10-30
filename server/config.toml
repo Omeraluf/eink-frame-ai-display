@@ -54,32 +54,44 @@ retries = 3
 retries = 6                # free tier allows 1 image per 45 s, so retries wait that long
 watermark_crop = 40        # extra pixels requested and cut off the bottom (Pollinations logo)
 
-# Text: date and weather. With placement = "auto" the server looks for a blank
-# bright area (the sign) and writes there; otherwise, or if none is found, it uses
-# each line's x/y position (fractions of the canvas, (0, 0) top-left) with a white halo.
+[calendar]
+mode = "important"         # "important" (one event), "week" (next few events) or "off"
+lookahead_days = 7
+important_marker = "!"     # put this in an event title to make it the one shown
+shown_at = "10:00"         # the board's refresh time: earlier events that day are skipped
+max_chars = 40             # hard cap; lines too wide for the screen are shortened with "…"
+max_lines = 5              # week mode
+
+# Text block: weather, date and calendar lines. With placement = "auto" the server
+# looks for a blank bright area (e.g. empty sky) and centers the block there;
+# otherwise, or if none is found, the block goes in the fallback corner with a white halo.
 [text]
-font = "server/fonts/PermanentMarker-Regular.ttf"
 placement = "auto"         # "auto" or "fixed"
 halo = 4
 line_gap = 10
+max_width = 0.92          # fraction of the canvas width a line may use; longer ones get "…"
 
 [text.auto]
 search_top = 0.0           # search band, as fractions of the height
-search_bottom = 0.5
+search_bottom = 0.6
 min_brightness = 200       # 0-255: the area must be mostly white...
 max_variation = 30         # ...and calm (low standard deviation)
 padding = 16
 
-[text.date]
-format = "%d/%m"           # DD/MM
-size = 64
-x = 0.92
-y = 0.95
-anchor = "rs"
+[text.fallback]
+x = 0.94                   # block's bottom-right corner, as fractions of the canvas
+y = 0.97
 
 [text.weather]
 format = "{high:.0f}° / {low:.0f}°  {description}"
+font = "server/fonts/PermanentMarker-Regular.ttf"
 size = 32
-x = 0.92
-y = 0.85
-anchor = "rs"
+
+[text.date]
+format = "%d/%m"           # DD/MM
+font = "server/fonts/PermanentMarker-Regular.ttf"
+size = 64
+
+[text.calendar]
+font = "server/fonts/AmaticSC-Bold.ttf"  # has Hebrew letters
+size = 42

@@ -1,6 +1,7 @@
 """Build today's frame for the e-paper board.
 
 Usage: .venv/bin/python server/build_frame.py [--date YYYY-MM-DD] [--style "..."]
+                                              [--calendar important|week|off]
 
 Writes <output_dir>/frame.bin (what the board downloads), preview.png (what
 the screen will show) and art.png (today's raw artwork, reused if tomorrow's
@@ -15,8 +16,9 @@ from zoneinfo import ZoneInfo
 from PIL import Image
 
 import art
+import calendar_events
 import weather
-from compose import compose, prepare
+from compose import Line, compose, prepare
 from frame import canvas_size, encode
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -43,10 +45,40 @@ def get_art(cfg: dict, day: dt.date, forecast, size, out: Path, style: str | Non
     return Image.new("L", size, 255)
 
 
+def calendar_texts(cfg: dict, day: dt.date, mode: str) -> list[str]:
+    """Calendar lines for the frame, as of the board's refresh time on `day`."""
+    c = cfg["calendar"]
+    if mode == "off":
+        return []
+    tz = ZoneInfo(cfg["timezone"])
+    now = dt.datetime.combine(day, dt.time.fromisoformat(c["shown_at"]), tz)
+    events = calendar_events.fetch(now, c["lookahead_days"], tz)
+    if not events:
+        return []
+    if mode == "week":
+        return calendar_events.week_lines(events, now, c)
+    event = calendar_events.most_important(events, now, c)
+    return [calendar_events.event_line(event, now, c)] if event else []
+
+
+def text_lines(cfg: dict, day: dt.date, forecast, calendar: list[str]) -> list[Line]:
+    t = cfg["text"]
+    lines = []
+    if forecast:
+        w = t["weather"]
+        text = w["format"].format(**vars(forecast), description=forecast.description)
+        lines.append(Line(text, w["font"], w["size"]))
+    lines.append(Line(day.strftime(t["date"]["format"]), t["date"]["font"], t["date"]["size"]))
+    lines += [Line(text, t["calendar"]["font"], t["calendar"]["size"]) for text in calendar]
+    return lines
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--date", type=dt.date.fromisoformat, help="override today's date")
     parser.add_argument("--style", help="override the art style for this run")
+    parser.add_argument("--calendar", choices=["important", "week", "off"],
+                        help="override the calendar mode for this run")
     args = parser.parse_args()
 
     cfg = load_config()
@@ -56,8 +88,9 @@ def main() -> None:
     out.mkdir(exist_ok=True)
 
     forecast = weather.fetch(cfg["weather"], day, cfg["timezone"])
+    calendar = calendar_texts(cfg, day, args.calendar or cfg["calendar"]["mode"])
     gray = prepare(get_art(cfg, day, forecast, size, out, args.style), size)
-    img = compose(gray, cfg["text"], day, forecast)
+    img = compose(gray, cfg["text"], text_lines(cfg, day, forecast, calendar))
 
     img.save(out / "preview.png")
     data = encode(img, cfg["orientation"])

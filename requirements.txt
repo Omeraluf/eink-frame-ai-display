@@ -1,1 +1,4 @@
 pillow
+icalendar
+recurring-ical-events
+python-bidi

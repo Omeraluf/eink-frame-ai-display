@@ -21,8 +21,10 @@ The goal: a server builds a daily AI artwork with the date, weather and a calend
 | `server/build_frame.py` | Builds today's frame: background + date + weather → `out/frame.bin` (what the board downloads) and `out/preview.png` |
 | `server/config.toml` | Server settings: timezone, orientation, background, weather location, text style and position |
 | `server/frame.py` | Panel format helpers: fit, dither, encode |
+| `server/calendar_events.py` | Upcoming events from a Google Calendar secret iCal link: the "most important" one, or the week ahead |
 | `server/weather.py` | Daily forecast from Open-Meteo (free, no key). If it fails, the frame is built without weather |
-| `server/fonts/` | Fonts used on the frame (Permanent Marker, Apache 2.0) |
+| `server/fonts/` | Fonts used on the frame: Permanent Marker (Apache 2.0), Amatic SC with Hebrew (OFL) |
+| `server/secrets.toml` | Cloudflare and Google Calendar credentials. **Gitignored**; on GitHub Actions they come from env vars |
 | `out/` | Generated output, served to the board. Gitignored |
 | `images/` | Source photos. Gitignored |
 | `backup/` | sha256 and read log of the factory TRMNL firmware dump. The 16 MB `.bin` itself is gitignored |
@@ -76,6 +78,8 @@ esptool.py --chip esp32s3 --port /dev/cu.usbmodem1401 write_flash 0x0 backup/trm
 - [x] Step 2: daily cycle (deep sleep until 10:00 Israel time, any button refreshes, 60 s flash window after reset)
 - [x] Step 3: server v1 (background photo + DD/MM)
 - [x] Step 4: weather (Open-Meteo, Ramat Gan)
-- [ ] Steps 5–6: AI art, calendar
-- [ ] Step 7: failure and battery icons, status screen
-- [ ] Step 8: server on GitHub Actions + Pages
+- [x] Step 5: AI art (Cloudflare Flux-schnell, 12 styles, pencil every other day)
+- [x] Step 6: calendar (most important event or week view, Hebrew supported)
+- [ ] Step 7: photo mode
+- [ ] Step 8: failure and battery icons, status screen
+- [ ] Step 9: server on GitHub Actions + Pages

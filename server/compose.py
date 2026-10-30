@@ -1,12 +1,45 @@
-"""Lay out the frame: art background plus date and weather text."""
-import datetime as dt
+"""Lay out the frame: art background plus a block of text lines."""
+import re
+from dataclasses import dataclass
 from pathlib import Path
 
+from bidi.algorithm import get_display
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageStat
 
-from weather import Forecast
-
 ROOT = Path(__file__).resolve().parent.parent
+HEBREW = re.compile("[֐-׿]")
+RLM = "‏"  # invisible right-to-left mark
+
+
+@dataclass
+class Line:
+    text: str
+    font: str  # path relative to the repo root
+    size: int
+
+
+def visual(text: str) -> str:
+    """Pillow draws left to right; reorder right-to-left runs (with mirrored brackets).
+    Lines start with a time or date and end with the title, so the line stays left to
+    right while a trailing RLM keeps end punctuation like ")" or "…" with the Hebrew."""
+    if not HEBREW.search(text):
+        return text
+    return get_display(text + RLM, base_dir="L").replace(RLM, "")
+
+
+def ellipsize(text: str) -> str:
+    return text + "…"
+
+
+def fit(text: str, font: ImageFont.FreeTypeFont, max_width: float) -> str:
+    """Shorten from the end with "…" until the line fits."""
+    if font.getlength(visual(text)) <= max_width:
+        return text
+    while len(text) > 4:
+        text = text.rstrip("…")[:-1].rstrip()
+        if font.getlength(visual(ellipsize(text))) <= max_width:
+            break
+    return ellipsize(text)
 
 
 def prepare(img: Image.Image, size: tuple[int, int]) -> Image.Image:
@@ -14,14 +47,6 @@ def prepare(img: Image.Image, size: tuple[int, int]) -> Image.Image:
     img = ImageOps.exif_transpose(img).convert("L")
     img = ImageOps.fit(img, size, Image.LANCZOS)
     return ImageOps.autocontrast(img, cutoff=1)
-
-
-def text_lines(cfg: dict, day: dt.date, forecast: Forecast | None) -> list[tuple[dict, str]]:
-    lines = [(cfg["date"], day.strftime(cfg["date"]["format"]))]
-    if forecast:
-        w = cfg["weather"]
-        lines.insert(0, (w, w["format"].format(**vars(forecast), description=forecast.description)))
-    return lines
 
 
 def find_blank_area(gray: Image.Image, box: tuple[int, int], cfg: dict) -> tuple[int, int] | None:
@@ -45,14 +70,16 @@ def find_blank_area(gray: Image.Image, box: tuple[int, int], cfg: dict) -> tuple
     return min(fits, key=lambda p: (p[0] - cx) ** 2 + (p[1] - cy) ** 2)
 
 
-def compose(gray: Image.Image, cfg: dict, day: dt.date, forecast: Forecast | None) -> Image.Image:
-    """Dither the art and write the text, on a blank area if the art has one."""
-    lines = text_lines(cfg, day, forecast)
-    fonts = [ImageFont.truetype(str(ROOT / cfg["font"]), line["size"]) for line, _ in lines]
-    sizes = [font.getbbox(text, anchor="ls") for font, (_, text) in zip(fonts, lines)]
+def compose(gray: Image.Image, cfg: dict, lines: list[Line]) -> Image.Image:
+    """Dither the art and write the text block: centered on a blank area if the art has
+    one, otherwise right-aligned at the fallback corner with a white halo."""
+    fonts = [ImageFont.truetype(str(ROOT / line.font), line.size) for line in lines]
+    max_width = gray.width * cfg["max_width"] - 2 * cfg["auto"]["padding"]
+    texts = [visual(fit(line.text, font, max_width)) for line, font in zip(lines, fonts)]
+    boxes = [font.getbbox(text, anchor="ls") for font, text in zip(fonts, texts)]
     gap = cfg["line_gap"]
-    block_w = max(b[2] - b[0] for b in sizes)
-    block_h = sum(b[3] - b[1] for b in sizes) + gap * (len(lines) - 1)
+    block_w = max(b[2] - b[0] for b in boxes)
+    block_h = sum(b[3] - b[1] for b in boxes) + gap * (len(lines) - 1)
     pad = cfg["auto"]["padding"]
 
     center = None
@@ -63,15 +90,13 @@ def compose(gray: Image.Image, cfg: dict, day: dt.date, forecast: Forecast | Non
     img = gray.convert("1")  # Floyd-Steinberg dithering
     draw = ImageDraw.Draw(img)
     if center:
-        # Text block centered on the blank area, lines centered on each other
-        y = center[1] - block_h / 2
-        for font, (line, text), b in zip(fonts, lines, sizes):
-            y += -b[1]  # ascent above the baseline
-            draw.text((center[0], y), text, font=font, fill=0, anchor="ms")
-            y += b[3] + gap
+        x, y, anchor, halo = center[0], center[1] - block_h / 2, "ms", {}
     else:
-        for font, (line, text) in zip(fonts, lines):
-            xy = (img.width * line["x"], img.height * line["y"])
-            draw.text(xy, text, font=font, fill=0, anchor=line["anchor"],
-                      stroke_width=cfg["halo"], stroke_fill=1)
+        fb = cfg["fallback"]
+        x, y, anchor = img.width * fb["x"], img.height * fb["y"] - block_h, "rs"
+        halo = {"stroke_width": cfg["halo"], "stroke_fill": 1}
+    for font, text, b in zip(fonts, texts, boxes):
+        y += -b[1]  # ascent above the baseline
+        draw.text((x, y), text, font=font, fill=0, anchor=anchor, **halo)
+        y += b[3] + gap
     return img

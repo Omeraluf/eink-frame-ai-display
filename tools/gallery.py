@@ -19,7 +19,7 @@ sys.path.insert(0, str(ROOT / "server"))
 
 import art  # noqa: E402
 import weather  # noqa: E402
-from build_frame import load_config  # noqa: E402
+from build_frame import load_config, text_lines  # noqa: E402
 from compose import compose, prepare  # noqa: E402
 from frame import canvas_size  # noqa: E402
 
@@ -51,7 +51,7 @@ def main() -> None:
             if img is None:
                 tiles.append('<div class="tile missing">generation failed</div>')
                 continue
-            frame = compose(prepare(img, size), cfg["text"], day, forecast)
+            frame = compose(prepare(img, size), cfg["text"], text_lines(cfg, day, forecast, []))
             tiles.append(f'<img class="tile" src="{data_uri(frame)}" alt="{html.escape(scene)}">')
         rows.append(f'<section><h2><span>{i}</span> {html.escape(style)}</h2>'
                     f'<div class="tiles">{"".join(tiles)}</div></section>')
