@@ -3,6 +3,7 @@
 #include <LittleFS.h>
 #include <TFT_eSPI.h> // Seeed_GFX keeps the TFT_eSPI header name
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <driver/rtc_io.h>
 #include <esp_sleep.h>
 #include <time.h>
@@ -67,17 +68,24 @@ bool syncTime() {
 
 // Downloads exactly FRAME_BYTES into `frame`; anything else counts as a failure
 bool downloadFrame() {
+  // The frame is public and gets size-checked, so HTTPS skips certificate checks
+  // rather than embedding a root certificate that would expire
+  WiFiClientSecure secure;
+  secure.setInsecure();
+  WiFiClient plain;
+  bool https = strncmp(IMAGE_URL, "https://", 8) == 0;
+
   HTTPClient http;
   http.setTimeout(HTTP_TIMEOUT_MS);
-  http.begin(IMAGE_URL);
+  http.begin(https ? (WiFiClient &)secure : plain, IMAGE_URL);
   int code = http.GET();
   if (code != HTTP_CODE_OK) {
     setResult("server error %d", code);
     http.end();
     return false;
   }
-  int size = http.getSize();
-  if (size != FRAME_BYTES) {
+  int size = http.getSize(); // -1 when the server doesn't say (chunked)
+  if (size != FRAME_BYTES && size != -1) {
     setResult("bad size %d bytes", size);
     http.end();
     return false;

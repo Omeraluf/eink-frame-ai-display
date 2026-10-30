@@ -25,8 +25,10 @@ The goal: a server builds a daily AI artwork with the date, weather and a calend
 | `server/weather.py` | Daily forecast from Open-Meteo (free, no key). If it fails, the frame is built without weather |
 | `server/fonts/` | Fonts used on the frame: Special Elite for date and weather (Apache 2.0), Amatic SC with Hebrew for the calendar (OFL), Permanent Marker (unused) |
 | `server/secrets.toml` | Cloudflare and Google Calendar credentials. **Gitignored**; on GitHub Actions they come from env vars |
+| `.github/workflows/build-frame.yml` | GitHub Actions: builds the frame daily at 05:00 UTC and publishes `out/` to GitHub Pages |
+| `photos/` | Resized copies of your photos, used by photo mode. Made by `tools/sync_photos.py` from `images/photos/` |
 | `out/` | Generated output, served to the board. Gitignored |
-| `images/` | Source photos. Gitignored |
+| `images/` | Original photos (`images/photos/`). Gitignored |
 | `backup/` | sha256 and read log of the factory TRMNL firmware dump. The 16 MB `.bin` itself is gitignored |
 
 ## Frame format

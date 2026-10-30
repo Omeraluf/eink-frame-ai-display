@@ -6,7 +6,7 @@
 include/secrets.h
 backup/*.bin
 .venv
-images/*.jpg
+images/
 build.log
 out/
 __pycache__/

@@ -1,0 +1,58 @@
+name: Build daily frame
+
+on:
+  schedule:
+    - cron: "0 5 * * *" # 05:00 UTC = 08:00 Israel summer time / 07:00 winter; the board reads at 10:00
+  workflow_dispatch: # "Run workflow" button on the Actions tab
+  push:
+    branches: [main]
+    paths: ["server/**", "photos/**", "requirements.txt", ".github/workflows/build-frame.yml"]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  SITE: https://omeraluf.github.io/eink-frame-ai-display
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      # Yesterday's artwork (fallback if generation fails) and last photo (avoid repeats)
+      - name: Restore state from the live site
+        run: |
+          mkdir -p out
+          curl -sf "$SITE/art.png" -o out/art.png || echo "no previous art"
+          curl -sf "$SITE/last_photo.txt" -o out/last_photo.txt || echo "no previous photo"
+
+      - name: Build frame
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          GOOGLE_ICAL_URL: ${{ secrets.GOOGLE_ICAL_URL }}
+        run: python server/build_frame.py
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
