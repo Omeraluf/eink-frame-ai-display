@@ -9,3 +9,4 @@ backup/*.bin
 images/*.jpg
 build.log
 out/
+__pycache__/
