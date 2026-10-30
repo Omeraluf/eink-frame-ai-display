@@ -53,7 +53,9 @@ Raw bytes, no header: 800×480 pixels, 1 bit per pixel, MSB first, row by row, b
    python3 -m http.server 8000 --directory out
    ```
    Portrait photos are cropped to 480×800 and rotated onto the landscape panel, so the frame stands upright. Check `out/preview.png` to see what the screen will show.
-6. **Press reset** on the board. Watch the logs with `pio device monitor`.
+6. **Press reset** (or any button) on the board. Watch the logs with `pio device monitor`.
+
+   The board deep-sleeps between refreshes, which switches off USB. To flash new firmware, press reset first: it then stays awake for 60 s (`FLASH_WINDOW_MS`). Refresh time and timezone are in `include/config.h`.
 
 ## Restoring the factory firmware
 
@@ -67,7 +69,7 @@ esptool.py --chip esp32s3 --port /dev/cu.usbmodem1401 write_flash 0x0 backup/trm
 ## Status
 
 - [x] Step 1: fetch a frame over WiFi and display it
-- [ ] Step 2: daily cycle (wake at 10:00 via deep sleep, button refresh)
+- [x] Step 2: daily cycle (deep sleep until 10:00 Israel time, any button refreshes, 60 s flash window after reset)
 - [ ] Steps 3–6: server with date, weather, AI art, calendar
 - [ ] Step 7: failure and battery icons, status screen
 - [ ] Step 8: server on GitHub Actions + Pages
