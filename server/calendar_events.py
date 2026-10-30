@@ -1,6 +1,7 @@
 """Upcoming events from a Google Calendar secret iCal link."""
 import datetime as dt
 import os
+import re
 import tomllib
 import urllib.request
 from dataclasses import dataclass
@@ -66,23 +67,34 @@ def most_important(events: list[Event], now: dt.datetime, cfg: dict) -> Event | 
     return timed[0] if timed else None
 
 
-def when(e: Event, now: dt.datetime) -> str:
+HEBREW = re.compile("[֐-׿]")
+DAYS = {  # indexed by weekday(), Monday = 0
+    "en": ("Today", "Tomorrow", ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]),
+    "he": ("היום", "מחר", ["שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת", "ראשון"]),
+}
+
+
+def when(e: Event, now: dt.datetime, lang: str) -> str:
+    today, tomorrow, weekdays = DAYS[lang]
     days = (e.start.date() - now.date()).days
-    day = "Today" if days == 0 else "Tomorrow" if days == 1 else e.start.strftime("%a")
+    day = today if days == 0 else tomorrow if days == 1 else weekdays[e.start.weekday()]
     return day if e.all_day else f"{day} {e.start:%H:%M}"
 
 
 def clean_title(e: Event, cfg: dict) -> str:
-    """Marker removed, whitespace collapsed (titles can contain line breaks), capped in length.
-    The frame layout shortens it further if the line is too wide."""
+    """Marker removed, whitespace collapsed (titles can contain line breaks), and cut
+    with "…" after `max_chars`."""
     title = " ".join(e.title.replace(cfg["important_marker"], "").split())
-    return title[: cfg["max_chars"]].rstrip()
+    limit = cfg["max_chars"]
+    return title if len(title) <= limit else title[:limit].rstrip() + "…"
 
 
 def event_line(e: Event, now: dt.datetime, cfg: dict) -> str:
-    return f"{when(e, now)} · {clean_title(e, cfg)}"
+    """"Today 13:00 · Dentist", with Hebrew day names for Hebrew titles."""
+    title = clean_title(e, cfg)
+    return f"{when(e, now, 'he' if HEBREW.search(title) else 'en')} · {title}"
 
 
 def week_lines(events: list[Event], now: dt.datetime, cfg: dict) -> list[str]:
-    """One line per event, "Tue 14:00 Dentist", up to `max_lines`."""
-    return [f"{when(e, now)}  {clean_title(e, cfg)}" for e in events[: cfg["max_lines"]]]
+    """One line per event, up to `max_lines`."""
+    return [event_line(e, now, cfg) for e in events[: cfg["max_lines"]]]

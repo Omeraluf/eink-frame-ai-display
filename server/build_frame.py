@@ -69,7 +69,8 @@ def text_lines(cfg: dict, day: dt.date, forecast, calendar: list[str]) -> list[L
         text = w["format"].format(**vars(forecast), description=forecast.description)
         lines.append(Line(text, w["font"], w["size"]))
     lines.append(Line(day.strftime(t["date"]["format"]), t["date"]["font"], t["date"]["size"]))
-    lines += [Line(text, t["calendar"]["font"], t["calendar"]["size"]) for text in calendar]
+    c = t["calendar"]
+    lines += [Line(text, c["font"], c["size"], c["max_rows"]) for text in calendar]
     return lines
 
 

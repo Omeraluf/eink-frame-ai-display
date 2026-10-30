@@ -59,7 +59,7 @@ mode = "important"         # "important" (one event), "week" (next few events) o
 lookahead_days = 7
 important_marker = "!"     # put this in an event title to make it the one shown
 shown_at = "10:00"         # the board's refresh time: earlier events that day are skipped
-max_chars = 40             # hard cap; lines too wide for the screen are shortened with "…"
+max_chars = 30             # longer titles are cut with "…"
 max_lines = 5              # week mode
 
 # Text block: weather, date and calendar lines. With placement = "auto" the server
@@ -95,3 +95,4 @@ size = 64
 [text.calendar]
 font = "server/fonts/AmaticSC-Bold.ttf"  # has Hebrew letters
 size = 42
+max_rows = 2               # an event too wide for one row wraps onto a second
