@@ -88,7 +88,7 @@ font = "server/fonts/SpecialElite-Regular.ttf"
 size = 22
 
 [text.date]
-format = "%d/%m"           # DD/MM
+format = "%d.%m"           # DD.MM
 font = "server/fonts/SpecialElite-Regular.ttf"
 size = 57
 
