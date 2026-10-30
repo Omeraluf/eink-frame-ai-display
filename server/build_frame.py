@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 
 from PIL import Image, ImageDraw, ImageFont
 
+import weather
 from frame import canvas_size, dither, encode
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -27,11 +28,12 @@ def background(cfg: dict, size: tuple[int, int]) -> Image.Image:
     return dither(Image.open(path), size)
 
 
-def draw_date(img: Image.Image, cfg: dict, day: dt.date) -> None:
-    font = ImageFont.truetype(str(ROOT / cfg["font"]), cfg["size"])
-    xy = (img.width * cfg["x"], img.height * cfg["y"])
-    ImageDraw.Draw(img).text(xy, day.strftime(cfg["format"]), font=font, fill=0,
-                             anchor=cfg["anchor"], stroke_width=cfg["halo"], stroke_fill=1)
+def draw_text(img: Image.Image, text_cfg: dict, line: dict, text: str) -> None:
+    """Black text with a white halo, placed by the line's x/y/anchor settings."""
+    font = ImageFont.truetype(str(ROOT / text_cfg["font"]), line["size"])
+    xy = (img.width * line["x"], img.height * line["y"])
+    ImageDraw.Draw(img).text(xy, text, font=font, fill=0, anchor=line["anchor"],
+                             stroke_width=text_cfg["halo"], stroke_fill=1)
 
 
 def main() -> None:
@@ -43,8 +45,15 @@ def main() -> None:
     day = args.date or dt.datetime.now(ZoneInfo(cfg["timezone"])).date()
     size = canvas_size(cfg["orientation"])
 
+    forecast = weather.fetch(cfg["weather"], day, cfg["timezone"])
+
     img = background(cfg["background"], size)
-    draw_date(img, cfg["date"], day)
+    text = cfg["text"]
+    draw_text(img, text, text["date"], day.strftime(text["date"]["format"]))
+    if forecast:
+        line = text["weather"]
+        draw_text(img, text, line, line["format"].format(**vars(forecast),
+                                                         description=forecast.description))
 
     out = ROOT / cfg["output_dir"]
     out.mkdir(exist_ok=True)
