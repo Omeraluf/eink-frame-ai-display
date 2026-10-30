@@ -1,7 +1,7 @@
 """Build today's frame for the e-paper board.
 
 Usage: .venv/bin/python server/build_frame.py [--date YYYY-MM-DD] [--style "..."]
-                                              [--calendar important|week|off]
+                                              [--calendar important|week|off] [--mode art|photo]
 
 Writes <output_dir>/frame.bin (what the board downloads), preview.png (what
 the screen will show) and art.png (today's raw artwork, reused if tomorrow's
@@ -9,6 +9,7 @@ generation fails). Serve locally with: python3 -m http.server 8000 --directory o
 """
 import argparse
 import datetime as dt
+import random
 import tomllib
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -28,13 +29,36 @@ def load_config() -> dict:
     return tomllib.loads((ROOT / "server" / "config.toml").read_text())
 
 
-def get_art(cfg: dict, day: dt.date, forecast, size, out: Path, style: str | None) -> Image.Image:
-    """Today's artwork; falls back to the last saved art, then to a blank canvas."""
-    a = cfg["art"]
-    style = style or art.pick_style(a, day)
-    prompt = art.build_prompt(a, style, art.pick(a["scenes"], day), forecast, day)
-    print(f"Art prompt: {prompt}")
-    img = art.generate(a, prompt, size, seed=day.toordinal())
+def pick_photo(cfg: dict, out: Path) -> Path | None:
+    """A random photo from the photos folder, never the same one twice in a row."""
+    folder = ROOT / cfg["dir"]
+    photos = sorted(p for p in folder.glob("*") if p.suffix.lower() in (".jpg", ".jpeg", ".png"))
+    if not photos:
+        return None
+    last = out / "last_photo.txt"
+    previous = last.read_text().strip() if last.exists() else ""
+    choices = [p for p in photos if p.name != previous] or photos
+    photo = random.choice(choices)
+    last.write_text(photo.name)
+    return photo
+
+
+def get_art(cfg: dict, day: dt.date, forecast, size, out: Path, style: str | None,
+            mode: str | None) -> Image.Image:
+    """Today's artwork: sometimes one of the user's photos redrawn, otherwise generated art.
+    Falls back to generated art, then the last saved art, then a blank canvas."""
+    a, p = cfg["art"], cfg["photos"]
+    img = None
+    if mode == "photo" or (mode is None and random.random() < p["chance"]):
+        photo = pick_photo(p, out)
+        if photo:
+            print(f"Art: redrawing photo {photo.name}")
+            img = art.from_photo(p, p["prompt"], photo)
+    if img is None:
+        style = style or art.pick_style(a, day)
+        prompt = art.build_prompt(a, style, art.pick(a["scenes"], day), forecast, day)
+        print(f"Art prompt: {prompt}")
+        img = art.generate(a, prompt, size, seed=day.toordinal())
     if img:
         img.save(out / "art.png")
         return img
@@ -78,6 +102,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--date", type=dt.date.fromisoformat, help="override today's date")
     parser.add_argument("--style", help="override the art style for this run")
+    parser.add_argument("--mode", choices=["art", "photo"], help="force generated art or a photo")
     parser.add_argument("--calendar", choices=["important", "week", "off"],
                         help="override the calendar mode for this run")
     args = parser.parse_args()
@@ -90,7 +115,7 @@ def main() -> None:
 
     forecast = weather.fetch(cfg["weather"], day, cfg["timezone"])
     calendar = calendar_texts(cfg, day, args.calendar or cfg["calendar"]["mode"])
-    gray = prepare(get_art(cfg, day, forecast, size, out, args.style), size)
+    gray = prepare(get_art(cfg, day, forecast, size, out, args.style, args.mode), size)
     img = compose(gray, cfg["text"], text_lines(cfg, day, forecast, calendar))
 
     img.save(out / "preview.png")

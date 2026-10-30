@@ -54,6 +54,17 @@ retries = 3
 retries = 6                # free tier allows 1 image per 45 s, so retries wait that long
 watermark_crop = 40        # extra pixels requested and cut off the bottom (Pollinations logo)
 
+[photos]
+# Some refreshes show one of your photos, redrawn by AI, instead of generated art
+dir = "images/photos"      # jpg/png files; a random one each time, never the same twice in a row
+chance = 0.35              # probability a refresh picks a photo (0 = never, 1 = always)
+model = "@cf/black-forest-labs/flux-2-klein-4b"  # Cloudflare image-editing model
+width = 768
+height = 1280
+steps = 4
+retries = 3
+prompt = "Redraw this exact photo as a detailed graphite pencil sketch on white paper. Keep the people, animals, their faces, poses and the composition. Pure black and white, high contrast, plenty of open plain space at the top."
+
 [calendar]
 mode = "important"         # "important" (one event), "week" (next few events) or "off"
 lookahead_days = 7

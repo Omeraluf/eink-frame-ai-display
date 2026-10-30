@@ -9,9 +9,10 @@ import tomllib
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 from weather import Forecast
 
@@ -104,6 +105,42 @@ def from_cloudflare(cfg: dict, prompt: str) -> Image.Image | None:
             print(f"Art: Cloudflare attempt {attempt}: HTTP {e.code} {e.read()[:200]!r}")
         except Exception as e:
             print(f"Art: Cloudflare attempt {attempt}: {e}")
+        if attempt < cfg["retries"]:
+            time.sleep(5)
+    return None
+
+
+def from_photo(cfg: dict, prompt: str, photo: Path) -> Image.Image | None:
+    """Redraw one of the user's photos with Cloudflare's image-editing model (FLUX.2 klein)."""
+    creds = cloudflare_credentials()
+    if creds is None:
+        print("Art: no Cloudflare credentials")
+        return None
+    src = ImageOps.exif_transpose(Image.open(photo)).convert("RGB")
+    src.thumbnail((1024, 1024))  # plenty for the model, keeps the upload small
+    jpeg = io.BytesIO()
+    src.save(jpeg, "JPEG", quality=90)
+
+    boundary = uuid.uuid4().hex
+    fields = {"prompt": prompt, "width": cfg["width"], "height": cfg["height"], "steps": cfg["steps"]}
+    body = b"".join(f'--{boundary}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode()
+                    for k, v in fields.items())
+    body += (f'--{boundary}\r\nContent-Disposition: form-data; name="input_image_0"; filename="photo.jpg"\r\n'
+             f"Content-Type: image/jpeg\r\n\r\n").encode() + jpeg.getvalue() + f"\r\n--{boundary}--\r\n".encode()
+    url = CLOUDFLARE_API.format(account=creds[0], model=cfg["model"])
+    headers = {"Authorization": f"Bearer {creds[1]}", "Content-Type": f"multipart/form-data; boundary={boundary}"}
+    for attempt in range(1, cfg["retries"] + 1):
+        try:
+            req = urllib.request.Request(url, body, headers)
+            with urllib.request.urlopen(req, timeout=180) as resp:
+                data = base64.b64decode(json.load(resp)["result"]["image"])
+            img = Image.open(io.BytesIO(data))
+            img.load()
+            return img
+        except urllib.error.HTTPError as e:
+            print(f"Art: photo edit attempt {attempt}: HTTP {e.code} {e.read()[:200]!r}")
+        except Exception as e:
+            print(f"Art: photo edit attempt {attempt}: {e}")
         if attempt < cfg["retries"]:
             time.sleep(5)
     return None
