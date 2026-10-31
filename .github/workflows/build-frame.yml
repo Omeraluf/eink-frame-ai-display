@@ -1,8 +1,13 @@
 name: Build daily frame
 
 on:
+  # GitHub delays scheduled runs and sometimes drops them (worst at the top of the hour),
+  # so there are three tries before the board reads at 10:00 Israel time. Later tries
+  # skip if today's frame is already published. UTC times; Israel is UTC+2 (winter) / +3.
   schedule:
-    - cron: "0 5 * * *" # 05:00 UTC = 08:00 Israel summer time / 07:00 winter; the board reads at 10:00
+    - cron: "23 4 * * *" # 06:23 winter / 07:23 summer
+    - cron: "47 5 * * *" # 07:47 / 08:47
+    - cron: "11 6 * * *" # 08:11 / 09:11
   workflow_dispatch: # "Run workflow" button on the Actions tab
   push:
     branches: [main]
@@ -27,23 +32,39 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
+      # Scheduled backup runs stop here once today's frame is live; manual and push runs always build
+      - name: Check whether today's frame is already published
+        id: check
+        run: |
+          today=$(TZ=Asia/Jerusalem date +%F)
+          built=$(curl -sf "$SITE/built.txt" || true)
+          echo "today=$today live=$built"
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "$built" = "$today" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.check.outputs.skip != 'true'
 
       - uses: actions/setup-python@v5
+        if: steps.check.outputs.skip != 'true'
         with:
           python-version: "3.12"
           cache: pip
 
       - run: pip install -r requirements.txt
+        if: steps.check.outputs.skip != 'true'
 
       # Yesterday's artwork (fallback if generation fails) and last photo (avoid repeats)
       - name: Restore state from the live site
+        if: steps.check.outputs.skip != 'true'
         run: |
           mkdir -p out
           curl -sf "$SITE/art.png" -o out/art.png || echo "no previous art"
           curl -sf "$SITE/last_photo.txt" -o out/last_photo.txt || echo "no previous photo"
 
       - name: Build frame
+        if: steps.check.outputs.skip != 'true'
         env:
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
@@ -51,8 +72,10 @@ jobs:
         run: python server/build_frame.py
 
       - uses: actions/upload-pages-artifact@v3
+        if: steps.check.outputs.skip != 'true'
         with:
           path: out
 
       - id: deploy
+        if: steps.check.outputs.skip != 'true'
         uses: actions/deploy-pages@v4

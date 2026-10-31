@@ -121,6 +121,7 @@ def main() -> None:
     img.save(out / "preview.png")
     data = encode(img, cfg["orientation"])
     (out / "frame.bin").write_bytes(data)
+    (out / "built.txt").write_text(day.isoformat())  # lets backup scheduled runs skip
     print(f"Built frame for {day:%d/%m/%Y}: {out / 'frame.bin'} ({len(data)} bytes)")
 
 
